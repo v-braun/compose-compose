@@ -26,7 +26,7 @@ const (
 	runningStatus stackRunStatus = 3
 )
 
-type StackStatus struct {
+type stackStatus struct {
 	Title         string
 	Path          string
 	StatusMessage string
@@ -38,7 +38,7 @@ type StackStatus struct {
 }
 
 type stack struct {
-	status   *StackStatus
+	status   *stackStatus
 	onUpdate func()
 	onLog    func(msg string)
 	path     string
@@ -58,7 +58,7 @@ func newStack(title string, path string) *stack {
 	result := new(stack)
 	result.path = path
 	result.title = title
-	result.status = new(StackStatus)
+	result.status = new(stackStatus)
 	result.status.Title = title
 	result.status.Path = path
 	result.status.StatusMessage = "run 'docker-compose ps'"
@@ -81,7 +81,7 @@ func newStack(title string, path string) *stack {
 	return result
 }
 
-func (s *stack) updateStatus(handler func(status *StackStatus)) {
+func (s *stack) updateStatus(handler func(status *stackStatus)) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	handler(s.status)
@@ -89,10 +89,10 @@ func (s *stack) updateStatus(handler func(status *StackStatus)) {
 	go s.onUpdate()
 }
 
-func (s *stack) GetStatus() *StackStatus {
+func (s *stack) GetStatus() *stackStatus {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	result := new(StackStatus)
+	result := new(stackStatus)
 	err := copier.Copy(&result, &s.status)
 	must.NoError(err, "unexpected error during copy")
 
@@ -107,14 +107,14 @@ func (s *stack) toggleMute() {
 func (s *stack) toggleRunning() {
 	stat := s.GetStatus()
 	s.changeFlag = true
-	s.updateStatus(func(stat *StackStatus) {
+	s.updateStatus(func(stat *stackStatus) {
 		stat.Status = warningStatus
 	})
 
 	go func() {
 		// set it again if another routine updated it
 		s.changeFlag = true
-		s.updateStatus(func(stat *StackStatus) {
+		s.updateStatus(func(stat *stackStatus) {
 			stat.Status = warningStatus
 		})
 
@@ -123,7 +123,7 @@ func (s *stack) toggleRunning() {
 			s.execComposeCommand("down").Wait()
 			logger.Printf("%s: end down", s.title)
 
-			s.updateStatus(func(stat *StackStatus) {
+			s.updateStatus(func(stat *stackStatus) {
 				stat.Status = stoppedStatus
 			})
 
@@ -131,7 +131,7 @@ func (s *stack) toggleRunning() {
 			logger.Printf("%s: begin up", s.title)
 			s.execComposeCommand("up", "-d").Wait()
 			logger.Printf("%s: end up", s.title)
-			s.updateStatus(func(stat *StackStatus) {
+			s.updateStatus(func(stat *stackStatus) {
 				stat.Status = warningStatus
 			})
 		}
@@ -160,7 +160,7 @@ func (s *stack) logsLoop() {
 				break
 			}
 			if bytes.Equal(line, []byte("Attaching to ")) {
-				s.updateStatus(func(stat *StackStatus) {
+				s.updateStatus(func(stat *stackStatus) {
 					if stat.Status == runningStatus {
 						stat.Status = warningStatus
 					} else {
@@ -175,7 +175,7 @@ func (s *stack) logsLoop() {
 			logger.Printf("got msg: [%s]", string(line))
 		}
 
-		// s.updateStatus(func(stat *StackStatus) {
+		// s.updateStatus(func(stat *stackStatus) {
 		// 	stat.Status = warningStatus
 		// })
 
@@ -191,7 +191,7 @@ func (s *stack) monitorLoop() {
 		running, all, runStat, err := s.getContainerStates()
 		if err != nil {
 			logger.Printf("err in get container stat: %v", err)
-			s.updateStatus(func(stat *StackStatus) {
+			s.updateStatus(func(stat *stackStatus) {
 				stat.Status = runStat
 				stat.StatusMessage = fmt.Sprintf("failed list running container: %s", err.Error())
 			})
@@ -201,7 +201,7 @@ func (s *stack) monitorLoop() {
 
 		logger.Printf("got state: %v | running: %v | all: %v", runStat, running, all)
 		if !s.changeFlag {
-			s.updateStatus(func(stat *StackStatus) {
+			s.updateStatus(func(stat *stackStatus) {
 				stat.Status = runStat
 				stat.RunningServices = running
 				stat.AllServices = all
@@ -295,7 +295,7 @@ func (s *stack) execComposeCommand(args ...string) *exec.Cmd {
 	return cmd
 }
 
-func createStacks(conf *Conf) []*stack {
+func createStacks(conf *conf) []*stack {
 	result := []*stack{}
 	for _, confS := range conf.Stacks {
 		s := newStack(confS.Title, confS.Path)

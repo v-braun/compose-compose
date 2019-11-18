@@ -21,7 +21,7 @@ func main() {
 	defer f.Close()
 	logger = log.New(f, "", log.LstdFlags)
 
-	cfg := LoadOrCreateConf()
+	cfg := loadOrCreateConf()
 	stacks := createStacks(cfg)
 	sidebar := newSidebar(stacks)
 	sidebar.SetSizePolicy(tui.Maximum, tui.Maximum)

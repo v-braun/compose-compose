@@ -10,7 +10,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-type Conf struct {
+type conf struct {
 	Stacks []struct {
 		Title string
 		Path  string
@@ -25,7 +25,7 @@ func configLocation() string {
 	return cfgPath
 }
 
-func writeConf(conf *Conf, path string) {
+func writeConf(conf *conf, path string) {
 	content, err := yaml.Marshal(conf)
 	must.NoError(err, "could not generate yml")
 
@@ -34,7 +34,7 @@ func writeConf(conf *Conf, path string) {
 }
 
 func createDefaultConf(path string) {
-	cfg := new(Conf)
+	cfg := new(conf)
 	cfg.Stacks = []struct {
 		Title string
 		Path  string
@@ -46,7 +46,7 @@ func createDefaultConf(path string) {
 	writeConf(cfg, path)
 }
 
-func LoadOrCreateConf() *Conf {
+func loadOrCreateConf() *conf {
 	path := configLocation()
 
 	if !pathExists(path) {
@@ -56,7 +56,7 @@ func LoadOrCreateConf() *Conf {
 	data, err := ioutil.ReadFile(path)
 	must.NoError(err, "could not read config file")
 
-	conf := new(Conf)
+	conf := new(conf)
 	err = yaml.Unmarshal(data, conf)
 	if err != nil {
 		panic(err)
